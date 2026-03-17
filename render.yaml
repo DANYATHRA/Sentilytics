@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: sentilytics
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: bash build.sh
+    startCommand: "cd backend && gunicorn youtube_audience_analyzer.wsgi:application --bind 0.0.0.0:$PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.7

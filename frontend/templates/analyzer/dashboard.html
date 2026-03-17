@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Video Header -->
+    <div class="glass-card rounded-2xl p-6 flex flex-col md:flex-row gap-6 items-center">
+        <img src="{{ analysis.thumbnail_url }}" alt="Thumbnail" class="w-full md:w-64 rounded-xl shadow-md">
+        <div class="flex-1">
+            <h1 class="text-3xl font-extrabold leading-tight mb-2">{{ analysis.title }}</h1>
+            <p class="text-indigo-600 font-semibold mb-4 text-lg">{{ analysis.author_name }}</p>
+            <div class="flex flex-wrap gap-2">
+                <span class="px-3 py-1 bg-slate-100 rounded-full text-sm font-medium text-slate-600">ID: {{ analysis.video_id }}</span>
+                <span class="px-3 py-1 bg-indigo-50 rounded-full text-sm font-medium text-indigo-600">Analyzed: {{ analysis.created_at|date:"M d, Y" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <p class="text-sm font-medium text-slate-500 mb-1">Impact Score</p>
+            <h4 class="text-3xl font-bold">{{ analysis.weighted_sentiment_score|floatformat:2 }}</h4>
+            <p class="text-xs text-slate-400 mt-2">Sentiment × Engagement log</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <p class="text-sm font-medium text-slate-500 mb-1">Top Sentiment</p>
+            <h4 class="text-3xl font-bold text-indigo-600">
+                {% if analysis.sentiment_distribution.positive > 50 %}Positive{% elif analysis.sentiment_distribution.negative > 50 %}Negative{% else %}Balanced{% endif %}
+            </h4>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <p class="text-sm font-medium text-slate-500 mb-1">Questions Detected</p>
+            <h4 class="text-3xl font-bold">{{ analysis.detected_questions|length }}</h4>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <p class="text-sm font-medium text-slate-500 mb-1">Total Comments</p>
+            <h4 class="text-3xl font-bold">{{ analysis.total_comment_count }}</h4>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left: Charts and Highlights -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Sentiment Distribution -->
+            <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
+                <h3 class="text-xl font-bold mb-6">Sentiment Distribution</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div class="h-64">
+                        <canvas id="sentimentChart"></canvas>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center p-3 bg-green-50 rounded-xl">
+                            <span class="font-semibold text-green-700">Positive</span>
+                            <span class="text-2xl font-bold text-green-700">{{ analysis.sentiment_distribution.positive|floatformat:1 }}%</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl">
+                            <span class="font-semibold text-slate-700">Neutral</span>
+                            <span class="text-2xl font-bold text-slate-700">{{ analysis.sentiment_distribution.neutral|floatformat:1 }}%</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-red-50 rounded-xl">
+                            <span class="font-semibold text-red-700">Negative</span>
+                            <span class="text-2xl font-bold text-red-700">{{ analysis.sentiment_distribution.negative|floatformat:1 }}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Topic Clusters -->
+            <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
+                <h3 class="text-xl font-bold mb-6">Discussion Themes</h3>
+                <div class="flex flex-wrap gap-4">
+                    {% for theme in analysis.topic_clusters %}
+                        <div class="px-5 py-4 bg-indigo-50 rounded-2xl border border-indigo-100 text-indigo-700">
+                            <p class="text-xs font-bold uppercase tracking-wider opacity-60 mb-1">Theme {{ forloop.counter }}</p>
+                            <p class="text-lg font-bold">{{ theme }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- High Engagement Threads -->
+            <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
+                <h3 class="text-xl font-bold mb-6">Audience Conversations</h3>
+                <div class="space-y-6">
+                    {% for comment in top_comments %}
+                        <div class="space-y-3">
+                            <!-- Parent Comment Card -->
+                            <div class="p-5 rounded-2xl border border-slate-200 bg-white shadow-sm hover:border-indigo-200 transition-colors">
+                                <div class="flex justify-between mb-2">
+                                    <span class="font-bold text-sm text-slate-800">{{ comment.author }}</span>
+                                    <span class="text-indigo-600 text-xs font-bold">{{ comment.like_count }} likes</span>
+                                </div>
+                                <p class="text-slate-700 text-sm leading-relaxed">{{ comment.text }}</p>
+                                <div class="mt-3 flex gap-2">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tight
+                                        {% if comment.sentiment == 'positive' %}bg-green-100 text-green-700{% elif comment.sentiment == 'negative' %}bg-red-100 text-red-700{% else %}bg-slate-200 text-slate-600{% endif %}">
+                                        {{ comment.sentiment }}
+                                    </span>
+                                    {% if comment.is_question %}
+                                        <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-tight">Question</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Nested Replies -->
+                            {% if comment.replies.all %}
+                                <div class="ml-8 pl-4 border-l-2 border-slate-100 space-y-3">
+                                    {% for reply in comment.replies.all %}
+                                        <div class="p-4 rounded-xl border border-slate-50 bg-slate-50/50">
+                                            <div class="flex justify-between mb-1">
+                                                <span class="font-bold text-[13px] text-slate-700">{{ reply.author }}</span>
+                                                <span class="text-slate-400 text-[11px]">{{ reply.like_count }} likes</span>
+                                            </div>
+                                            <p class="text-slate-600 text-[13px] leading-relaxed">{{ reply.text }}</p>
+                                            <div class="mt-2 flex gap-2">
+                                                <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                                                    {{ reply.sentiment }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Insights and Recommends -->
+        <div class="space-y-8">
+            <!-- Pain Points -->
+            <div class="bg-indigo-900 border border-indigo-800 p-8 rounded-3xl text-white shadow-xl shadow-indigo-100">
+                <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Viewer Pain Points
+                </h3>
+                {% if analysis.detected_pain_points %}
+                    <ul class="space-y-4">
+                        {% for point in analysis.detected_pain_points %}
+                            <li class="flex gap-3 text-indigo-100">
+                                <span class="w-1.5 h-1.5 bg-indigo-400 rounded-full mt-2 shrink-0"></span>
+                                <span>{{ point }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-indigo-300 italic">No significant pain points detected.</p>
+                {% endif %}
+            </div>
+
+            <!-- Recommendations -->
+            <div class="bg-emerald-600 border border-emerald-500 p-8 rounded-3xl text-white shadow-xl shadow-emerald-100">
+                <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.364-6.364l-.707-.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M12 7a5 5 0 015 5 5 5 0 01-5 5 5 5 0 01-5-5 5 5 0 015-5z" />
+                    </svg>
+                    Creator Recommendations
+                </h3>
+                <ul class="space-y-4">
+                    {% for rec in analysis.creator_recommendations %}
+                        <li class="flex gap-3 text-emerald-50 font-medium">
+                            <span class="bg-emerald-400/30 p-1 rounded-lg shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </span>
+                            <span>{{ rec }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Common Keywords -->
+            <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
+                <h3 class="text-xl font-bold mb-6">Key Phrases</h3>
+                <div class="flex flex-wrap gap-2 text-center">
+                    {% for kw in analysis.top_keywords %}
+                        <span class="px-3 py-2 bg-slate-100 rounded-xl text-slate-700 text-sm font-semibold capitalize">{{ kw }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ analysis.sentiment_distribution|json_script:"sentiment-data" }}
+
+<script>
+    const sentimentData = JSON.parse(document.getElementById('sentiment-data').textContent);
+    
+    const ctx = document.getElementById('sentimentChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Positive', 'Neutral', 'Negative'],
+            datasets: [{
+                data: [
+                    sentimentData.positive || 0,
+                    sentimentData.neutral || 0,
+                    sentimentData.negative || 0
+                ],
+                backgroundColor: ['#10b981', '#94a3b8', '#ef4444'],
+                borderWidth: 0,
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            cutout: '70%'
+        }
+    });
+</script>
+{% endblock %}
