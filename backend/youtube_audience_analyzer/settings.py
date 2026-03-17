@@ -27,7 +27,9 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-14ii!(530%zdvf#pv!hjl
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,*.onrender.com', cast=Csv())
+# Allow Render domains and localhost
+_allowed = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,sentilytics-n9sk.onrender.com', cast=Csv())
+ALLOWED_HOSTS = list(_allowed) if _allowed else []
 
 
 # Application definition
