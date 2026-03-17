@@ -25,11 +25,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-14ii!(530%zdvf#pv!hjl$p8)vn^7=e4y_(9$f91b7s-hj3h04')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = True
 
-# Allow Render domains and localhost
-_allowed = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,sentilytics-n9sk.onrender.com', cast=Csv())
-ALLOWED_HOSTS = list(_allowed) if _allowed else []
+# Allow all Render domains and localhost
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
