@@ -132,5 +132,4 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = False
 
 # WhiteNoise configuration for static files in production
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'static']
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
