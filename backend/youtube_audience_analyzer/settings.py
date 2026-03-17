@@ -55,10 +55,16 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'youtube_audience_analyzer.urls'
 
+# Template directories - try multiple locations for flexibility
+TEMPLATE_DIRS = []
+frontend_templates = BASE_DIR.parent / 'frontend' / 'templates'
+if frontend_templates.exists():
+    TEMPLATE_DIRS.append(frontend_templates)
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR.parent / 'frontend' / 'templates'],
+        'DIRS': TEMPLATE_DIRS,
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
